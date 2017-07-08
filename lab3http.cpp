@@ -124,9 +124,9 @@ int main(int argc, char **argv)
 	while ((tmpres = recv(sock, buf, BUFSIZ, 0)) > 0 ) {
 		if (htmlstart == 0) {
 			/* Under certain conditions this will not work.
-			 * If the \r\n\r\n part is splitted into two messages
-			 * it will fail to detect the beginning of HTML content
-			 */
+			* If the \r\n\r\n part is splitted into two messages
+			* it will fail to detect the beginning of HTML content
+			*/
 			htmlcontent = strstr(buf, "\r\n\r\n");
 			if (htmlcontent != NULL) {
 				htmlstart = 1;
