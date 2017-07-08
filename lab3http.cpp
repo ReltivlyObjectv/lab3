@@ -18,6 +18,11 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include <string.h>
+
+#ifdef UNIT_TEST
+#include <string>
+#endif
+
 //Fixed Error:'close' was not declared in this scope
 //Added unistd.h to includes
 #include <unistd.h>
@@ -42,9 +47,13 @@ int main(int argc, char **argv)
 	char *ip;
 	char *get;
 	char buf[BUFSIZ+1];
+	#ifdef UNIT_TEST
+	//We know that /~donna/ is disallowed in the robots.txt, so we will test for that
+	char host[14] = "cs.csubak.edu";
+	char page[11] = "robots.txt";
+	#else
 	char *host;
 	char *page;
-
 	if (argc == 1) {
 		program_usage();
 		exit(2);
@@ -57,9 +66,23 @@ int main(int argc, char **argv)
 		//Cast PAGE as character pointer
 		page = (char*) PAGE;
 	}
+	#endif
 	sock = create_tcp_socket();
 	ip = get_ip(host);
+	#ifdef UNIT_TEST
+	//We know csub's IP is 136.168.201.100
+	char csubIP[16] = "136.168.201.100";
+	for (int i = 0; i < 16; i++) {
+		if (csubIP[i] != ip[i]) {
+			printf("Incorrect IP address found!\n");
+			printf("Expected %s. Found %s\n", csubIP, ip);
+			return 1;
+		}
+	}
+	printf("Correct IP retrieved! %s\n", ip);
+	#else
 	fprintf(stderr, "IP is %s\n", ip);
+	#endif
 	remote = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in *));
 	remote->sin_family = AF_INET;
 	tmpres = inet_pton(AF_INET, ip, (void *)(&(remote->sin_addr.s_addr)));
@@ -78,8 +101,10 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	get = build_get_query(host, page);
+	#ifndef UNIT_TEST
+	//Information not printed during unit test
 	fprintf(stderr, "Query is:\n<<START>>\n%s<<END>>\n", get);
-
+	#endif
 	//Send the query to the server
 	//Fixed warning: comparison between signed and unsigned integer expression
 	//Changed sent to an unsigned int from a sent int
@@ -111,7 +136,18 @@ int main(int argc, char **argv)
 			htmlcontent = buf;
 		}
 		if (htmlstart) {
+			#ifdef UNIT_TEST
+			std::string contentString = htmlcontent;
+			if (contentString.find("Disallow: /~donna/") == std::string::npos) {
+				printf("Could not find rule for donna in robots.txt!\n");
+				printf("Unit test failed!\n");
+			} else {
+				printf("Line found: Disallow: /~donna/\n");
+				printf("Unit test passed!\n");
+			}
+			#else
 			fprintf(stdout, "%s", htmlcontent);
+			#endif
 		}
 		memset(buf, 0, tmpres);
 	}
